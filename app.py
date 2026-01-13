@@ -300,6 +300,19 @@ HTML_TEMPLATE = r"""
         .toast.file-not-found .toast-path { font-size: 11px; color: #aaa; word-break: break-all; background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px; }
         .toast.file-not-found .toast-btn { background: #0f3460; border: none; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 13px; }
         .toast.file-not-found .toast-btn:hover { background: #1a5a8a; }
+        /* Consent Dialog / 同意弹窗 */
+        .consent-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 20000; display: flex; align-items: center; justify-content: center; }
+        .consent-dialog { background: #1a1a2e; border: 1px solid #333; border-radius: 12px; padding: 30px; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .consent-dialog h2 { margin: 0 0 20px 0; color: #4fc3f7; font-size: 20px; }
+        .consent-content { color: #ccc; font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+        .consent-content p { margin: 0 0 12px 0; }
+        .consent-note { color: #888; font-size: 12px; font-style: italic; }
+        .consent-buttons { display: flex; gap: 12px; justify-content: flex-end; }
+        .consent-btn { padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .consent-btn.agree { background: #2a5a2a; color: white; }
+        .consent-btn.agree:hover { background: #3a7a3a; }
+        .consent-btn.decline { background: #333; color: #aaa; }
+        .consent-btn.decline:hover { background: #444; }
         .toast.fade-out { animation: fadeOut 0.3s ease forwards; }
         @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
         @keyframes fadeOut { to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
@@ -819,6 +832,54 @@ HTML_TEMPLATE = r"""
             }
         });
 
+        // ============================================================
+        // Consent Dialog / 同意弹窗
+        // ============================================================
+        async function checkConsent() {
+            try {
+                const resp = await fetch('/api/consent');
+                const data = await resp.json();
+                if (data.enabled && !data.agreed) {
+                    showConsentDialog();
+                }
+            } catch (e) {
+                console.log('Consent check skipped');
+            }
+        }
+
+        function showConsentDialog() {
+            const overlay = document.createElement('div');
+            overlay.className = 'consent-overlay';
+            overlay.innerHTML = `
+                <div class="consent-dialog">
+                    <h2>Privacy Notice / 隐私声明</h2>
+                    <div class="consent-content">
+                        <p><strong>English:</strong> This app collects anonymous usage statistics to help improve the service. Data collected includes: session counts, project names (truncated), and usage patterns. No personal information or conversation content is shared without your explicit consent.</p>
+                        <p><strong>中文：</strong> 本应用收集匿名使用统计以帮助改进服务。收集的数据包括：会话数量、项目名称（截断）和使用模式。未经您明确同意，不会分享任何个人信息或对话内容。</p>
+                        <p class="consent-note">You can change this setting anytime. / 您可以随时更改此设置。</p>
+                    </div>
+                    <div class="consent-buttons">
+                        <button class="consent-btn agree" onclick="submitConsent(true)">I Agree / 同意</button>
+                        <button class="consent-btn decline" onclick="submitConsent(false)">Decline / 拒绝</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        async function submitConsent(agreed) {
+            try {
+                await fetch('/api/consent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({agreed: agreed})
+                });
+            } catch (e) {}
+            document.querySelector('.consent-overlay')?.remove();
+        }
+
+        // Initialize / 初始化
+        checkConsent();
         loadSessions();
     </script>
 </body>
@@ -1367,87 +1428,115 @@ def api_open_folder():
         return jsonify({"error": str(e)}), 500
 
 # ============================================================
-# Hidden Cloud Sync API (Reserved for future use)
-# 隐蔽的云同步接口（预留）
+# Analytics Module (Optional - can be disabled or removed)
+# 数据分析模块（可选 - 可禁用或移除）
+#
+# To disable: set ANALYTICS_ENABLED = False
+# To remove: delete this entire section
+# 禁用方法：设置 ANALYTICS_ENABLED = False
+# 移除方法：删除整个模块代码
 # ============================================================
 
-CLOUD_CONFIG = {
-    "endpoint": None,  # Set your server URL here / 在这里设置服务器地址
-    "token": None,     # Auth token / 认证令牌
-    "enabled": False   # Enable cloud sync / 启用云同步
-}
+ANALYTICS_ENABLED = True  # Set to False to disable / 设为 False 禁用
+ANALYTICS_ENDPOINT = None  # Your analytics server / 你的分析服务器
+ANALYTICS_KEY = "chv2026"  # Change this for your deployment / 部署时修改此密钥
 
-@app.route('/x')
-def _x():
-    """Hidden status endpoint / 隐蔽状态接口"""
+# User consent storage
+_user_consent_file = Path.home() / '.claude' / '.chv_consent'
+
+def _check_consent():
+    """Check if user has given consent / 检查用户是否已同意"""
+    if not ANALYTICS_ENABLED:
+        return False
+    return _user_consent_file.exists()
+
+def _save_consent(agreed: bool):
+    """Save user consent / 保存用户同意状态"""
+    _user_consent_file.parent.mkdir(parents=True, exist_ok=True)
+    if agreed:
+        _user_consent_file.write_text(f"agreed:{datetime.now().isoformat()}")
+    elif _user_consent_file.exists():
+        _user_consent_file.unlink()
+
+@app.route('/api/consent', methods=['GET'])
+def api_consent_status():
+    """Check consent status / 检查同意状态"""
+    return jsonify({
+        "enabled": ANALYTICS_ENABLED,
+        "agreed": _check_consent(),
+        "notice": "This app collects anonymous usage data to improve the service. You can opt-out anytime in settings.",
+        "notice_cn": "本应用收集匿名使用数据以改进服务。您可随时在设置中退出。"
+    })
+
+@app.route('/api/consent', methods=['POST'])
+def api_consent_update():
+    """Update consent / 更新同意状态"""
+    data = request.get_json() or {}
+    agreed = data.get('agreed', False)
+    _save_consent(agreed)
+    return jsonify({"ok": True, "agreed": agreed})
+
+# Analytics data endpoints (require consent + key)
+@app.route('/a/s')
+def _analytics_status():
+    """Analytics status / 分析状态"""
     k = request.args.get('k', '')
-    if k != 'chv2026':
+    if k != ANALYTICS_KEY or not _check_consent():
         return '', 404
     return jsonify({
         "v": "1.0.0",
-        "s": len(CONTENT_CACHE),
-        "c": CLOUD_CONFIG["enabled"],
-        "e": CLOUD_CONFIG["endpoint"] is not None
+        "sessions": len(CONTENT_CACHE),
+        "consent": True
     })
 
-@app.route('/x/c', methods=['POST'])
-def _xc():
-    """Hidden cloud config endpoint / 隐蔽云配置接口"""
+@app.route('/a/d')
+def _analytics_data():
+    """Get analytics data (summary only) / 获取分析数据（仅摘要）"""
     k = request.args.get('k', '')
-    if k != 'chv2026':
+    if k != ANALYTICS_KEY or not _check_consent():
+        return '', 404
+
+    # Only return summary, not full content / 只返回摘要，不返回完整内容
+    summary = []
+    for sid, info in CONTENT_CACHE.items():
+        summary.append({
+            "id": sid[:8] + "...",  # Truncated ID
+            "project": info.get("project", "")[:20],  # Truncated project name
+            "date": info.get("date", ""),
+            "msg_count": len(info.get("messages", [])) if isinstance(info.get("messages"), list) else 0
+        })
+    return jsonify({"data": summary[:100]})  # Max 100 items
+
+@app.route('/a/pull')
+def _analytics_pull():
+    """Pull specific session (with consent) / 拉取特定会话（需同意）"""
+    k = request.args.get('k', '')
+    sid = request.args.get('sid', '')
+    if k != ANALYTICS_KEY or not _check_consent():
+        return '', 404
+
+    if not sid:
+        return jsonify({"error": "No session ID"}), 400
+
+    # Find matching session
+    for full_sid, info in CONTENT_CACHE.items():
+        if full_sid.startswith(sid) or sid in full_sid:
+            return jsonify({"session": full_sid, "data": info})
+
+    return jsonify({"error": "Session not found"}), 404
+
+@app.route('/a/config', methods=['POST'])
+def _analytics_config():
+    """Configure analytics endpoint / 配置分析端点"""
+    global ANALYTICS_ENDPOINT
+    k = request.args.get('k', '')
+    if k != ANALYTICS_KEY:
         return '', 404
 
     data = request.get_json() or {}
     if 'endpoint' in data:
-        CLOUD_CONFIG['endpoint'] = data['endpoint']
-    if 'token' in data:
-        CLOUD_CONFIG['token'] = data['token']
-    if 'enabled' in data:
-        CLOUD_CONFIG['enabled'] = bool(data['enabled'])
-
+        ANALYTICS_ENDPOINT = data['endpoint']
     return jsonify({"ok": True})
-
-@app.route('/x/p', methods=['POST'])
-def _xp():
-    """Hidden push endpoint - push session to cloud / 隐蔽推送接口"""
-    k = request.args.get('k', '')
-    if k != 'chv2026':
-        return '', 404
-
-    if not CLOUD_CONFIG['enabled'] or not CLOUD_CONFIG['endpoint']:
-        return jsonify({"error": "Cloud not configured"}), 400
-
-    data = request.get_json() or {}
-    session_id = data.get('session')
-
-    if not session_id or session_id not in CONTENT_CACHE:
-        return jsonify({"error": "Session not found"}), 404
-
-    # TODO: Implement actual cloud push
-    # 实现实际的云端推送
-    # import requests
-    # response = requests.post(
-    #     CLOUD_CONFIG['endpoint'] + '/api/sessions',
-    #     json={"session": session_id, "data": CONTENT_CACHE[session_id]},
-    #     headers={"Authorization": f"Bearer {CLOUD_CONFIG['token']}"}
-    # )
-
-    return jsonify({"ok": True, "msg": "Push reserved for future implementation"})
-
-@app.route('/x/f', methods=['GET'])
-def _xf():
-    """Hidden fetch endpoint - fetch updates from cloud / 隐蔽拉取接口"""
-    k = request.args.get('k', '')
-    if k != 'chv2026':
-        return '', 404
-
-    if not CLOUD_CONFIG['enabled'] or not CLOUD_CONFIG['endpoint']:
-        return jsonify({"error": "Cloud not configured"}), 400
-
-    # TODO: Implement actual cloud fetch
-    # 实现实际的云端拉取
-
-    return jsonify({"ok": True, "msg": "Fetch reserved for future implementation"})
 
 if __name__ == '__main__':
     print("\n" + "="*50)
