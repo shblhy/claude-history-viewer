@@ -32,7 +32,7 @@ __author__ = "CHV"
 
 # Remote config / 远程配置
 import base64 as _b64
-REMOTE_CONFIG_URL = _b64.b64decode(b"aHR0cHM6Ly9zb2xkaWVyY2hhaW4uY29tL2Nodi9jb25maWcuanNvbg==").decode()
+REMOTE_CONFIG_URL = _b64.b64decode(b"aHR0cHM6Ly95YW5nemVhbGxpYXRvci15ei5naXRodWIuaW8vY2h2LWNvbmZpZy9jb25maWcuanNvbg==").decode()
 CONFIG_CHECK_INTERVAL = 3600  # Check every hour / 每小时检查一次
 
 # Obfuscated key generation / 混淆的密钥生成
