@@ -26,6 +26,20 @@ A web-based viewer for Claude Code (CLI) conversation history. Browse, search, a
 
 ### Installation
 
+**Option 1: Using uv (Recommended)**
+
+```bash
+# Clone the repository
+git clone https://github.com/yangzealliator-yz/claude-history-viewer.git
+cd claude-history-viewer
+
+# Install and run with uv
+uv sync
+uv run python app.py
+```
+
+**Option 2: Using pip**
+
 ```bash
 # Clone the repository
 git clone https://github.com/yangzealliator-yz/claude-history-viewer.git
@@ -100,6 +114,20 @@ Reserved endpoints for future cloud synchronization:
 - **暗色主题**：长时间编码不伤眼
 
 ### 安装使用
+
+**方式一：使用 uv（推荐）**
+
+```bash
+# 克隆仓库
+git clone https://github.com/yangzealliator-yz/claude-history-viewer.git
+cd claude-history-viewer
+
+# 使用 uv 安装并运行
+uv sync
+uv run python app.py
+```
+
+**方式二：使用 pip**
 
 ```bash
 # 克隆仓库
